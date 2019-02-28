@@ -1,72 +1,92 @@
-﻿#include <iostream>
+﻿// I am aiming to subtract two point clouds and display the subtracted results in one window.
+// Include conversion of PointXYZ to PointXYZRGBA
+
+#include <iostream>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/segmentation/segment_differences.h>
 
+typedef pcl::PointXYZRGBA PointC;
+typedef pcl::PointXYZ PointM;
+typedef pcl::PointCloud<PointC> PointCloudC;
+typedef pcl::PointCloud<PointM> PointCloudM;
+
 int
-main (int argc, char** argv)
+main(int argc, char** argv)
 {
-  /*pcl::PCLPointCloud2::Ptr cloud (new pcl::PCLPointCloud2 ());
-  pcl::PCLPointCloud2::Ptr cloud_filtered (new pcl::PCLPointCloud2 ());*/
+	/*pcl::PCLPointCloud2::Ptr cloud (new pcl::PCLPointCloud2 ());
+	pcl::PCLPointCloud2::Ptr cloud_filtered (new pcl::PCLPointCloud2 ());*/
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud (new pcl::PointCloud <pcl::PointXYZ>);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud <pcl::PointXYZ>);
+	PointCloudM::Ptr cloud(new PointCloudM);
+	PointCloudM::Ptr cloud_filtered(new PointCloudM);
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud02(new pcl::PointCloud <pcl::PointXYZ>);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud02_filtered(new pcl::PointCloud <pcl::PointXYZ>);
+	PointCloudM::Ptr cloud02(new PointCloudM);
+	PointCloudM::Ptr cloud02_filtered(new PointCloudM);
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_subtracted(new pcl::PointCloud <pcl::PointXYZ>);
+	PointCloudM::Ptr cloud_subtracted(new PointCloudM);
 
-  // Fill in the cloud data
-  pcl::PCDReader reader;
-  // Replace the path below with the path where you saved your file
-  reader.read ("drawer_01.pcd", *cloud); // Remember to download the file first!
 
-  std::cerr << "PointCloud before filtering: " << cloud->width * cloud->height 
-       << " data points (" << pcl::getFieldsList (*cloud) << ").";
+	// Fill in the cloud data
+	pcl::PCDReader reader;
+	// Replace the path below with the path where you saved your file
+	reader.read("drawer_01.pcd", *cloud); // Remember to download the file first!
 
-  reader.read("drawer_02.pcd", *cloud02); // Remember to download the file first!
+	std::cerr << "PointCloud before filtering: " << cloud->width * cloud->height
+		<< " data points (" << pcl::getFieldsList(*cloud) << ").";
 
-  std::cerr << "PointCloud before filtering: " << cloud02->width * cloud02->height
-	  << " data points (" << pcl::getFieldsList(*cloud02) << ").";
+	reader.read("drawer_02.pcd", *cloud02); // Remember to download the file first!
 
-  // Create the filtering object
-  /*pcl::VoxelGrid<pcl::PCLPointCloud2> sor;*/
-  pcl::VoxelGrid<pcl::PointXYZ> sor;
+	std::cerr << "PointCloud before filtering: " << cloud02->width * cloud02->height
+		<< " data points (" << pcl::getFieldsList(*cloud02) << ").";
 
-  sor.setInputCloud (cloud);
-  sor.setLeafSize (0.05f, 0.05f, 0.05f);
-  sor.filter (*cloud_filtered);
-  std::cerr << "PointCloud after filtering: " << cloud_filtered->width * cloud_filtered->height 
-       << " data points (" << pcl::getFieldsList (*cloud_filtered) << ").";
+	// Create the filtering object
+	/*pcl::VoxelGrid<pcl::PCLPointCloud2> sor;*/
+	pcl::VoxelGrid<pcl::PointXYZ> sor;
 
-  pcl::VoxelGrid<pcl::PointXYZ> sor02;
+	sor.setInputCloud(cloud);
+	sor.setLeafSize(0.05f, 0.05f, 0.05f);
+	sor.filter(*cloud_filtered);
+	std::cerr << "PointCloud after filtering: " << cloud_filtered->width * cloud_filtered->height
+		<< " data points (" << pcl::getFieldsList(*cloud_filtered) << ").";
 
-  sor02.setInputCloud(cloud02);
-  sor02.setLeafSize(0.05f, 0.05f, 0.05f);
-  sor02.filter(*cloud02_filtered);
-  std::cerr << "PointCloud after filtering: " << cloud02_filtered->width * cloud02_filtered->height
-	  << " data points (" << pcl::getFieldsList(*cloud02_filtered) << ").";
+	pcl::VoxelGrid<pcl::PointXYZ> sor02;
 
-  /*pcl::PCDWriter writer;
-  writer.write ("table_scene_lms400_downsampled.pcd", *cloud_filtered, 
-         Eigen::Vector4f::Zero (), Eigen::Quaternionf::Identity (), false);*/
+	sor02.setInputCloud(cloud02);
+	sor02.setLeafSize(0.05f, 0.05f, 0.05f);
+	sor02.filter(*cloud02_filtered);
+	std::cerr << "PointCloud after filtering: " << cloud02_filtered->width * cloud02_filtered->height
+		<< " data points (" << pcl::getFieldsList(*cloud02_filtered) << ").";
 
-  // Point Cloud subtraction
-  pcl::SegmentDifferences<pcl::PointXYZ> seg_diff;
+	/*pcl::PCDWriter writer;
+	writer.write ("table_scene_lms400_downsampled.pcd", *cloud_filtered,
+		   Eigen::Vector4f::Zero (), Eigen::Quaternionf::Identity (), false);*/
 
-  seg_diff.setTargetCloud(cloud_filtered);
-  seg_diff.setInputCloud(cloud02_filtered);
-  seg_diff.setDistanceThreshold(0.01);
+		   // Point Cloud subtraction
+	pcl::SegmentDifferences<pcl::PointXYZ> seg_diff;
 
-  seg_diff.segment(*cloud_subtracted);
+	seg_diff.setTargetCloud(cloud_filtered);
+	seg_diff.setInputCloud(cloud02_filtered);
+	seg_diff.setDistanceThreshold(0.1);
 
-  pcl::visualization::CloudViewer viewer("Cloud Viewer");
-  viewer.showCloud(cloud_subtracted);
+	seg_diff.segment(*cloud_subtracted);
+
+	// pcl::visualization::CloudViewer viewer("Cloud Viewer");
+	pcl::visualization::PCLVisualizer viewer("PCL visualizer");
+
+	// Specify Point Cloud Handler for color
+	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_color(cloud_subtracted, 0, 255, 0);
+	pcl::visualization::PointCloudColorHandlerCustom<pcl::PointXYZ> single_color_input(cloud02_filtered, 150, 150, 255);
+
+	viewer.addPointCloud(cloud_subtracted, single_color, "cloud segmented");
+	viewer.setPointCloudRenderingProperties(pcl::visualization::PCL_VISUALIZER_POINT_SIZE, 3, "cloud segmented");
+	viewer.addPointCloud(cloud_filtered, "input cloud 01");
+	viewer.addPointCloud(cloud02_filtered, single_color_input, "input cloud 02");
+
   while (!viewer.wasStopped())
   {
+	  viewer.spinOnce();
 
   }
 
