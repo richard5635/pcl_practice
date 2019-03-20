@@ -1,17 +1,23 @@
-﻿// I am aiming to subtract two point clouds and display the subtracted results in one window.
+// I am aiming to subtract two point clouds and display the subtracted results in one window.
 // Include conversion of PointXYZ to PointXYZRGBA
 
 #include <iostream>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/statistical_outlier_removal.h>
+#include <pcl/filters/passthrough.h>
 #include <pcl/visualization/cloud_viewer.h>
 #include <pcl/segmentation/segment_differences.h>
 
-typedef pcl::PointXYZRGBA PointC;
-typedef pcl::PointXYZ PointM;
+
+typedef pcl::PointXYZRGBA PointC; // Colorful Point
+typedef pcl::PointXYZ PointM; // Colorless Point
 typedef pcl::PointCloud<PointC> PointCloudC;
 typedef pcl::PointCloud<PointM> PointCloudM;
+
+void denoise(PointCloudM::Ptr cloud_in, PointCloudM::Ptr cloud_out);
+void passthrough(PointCloudM::Ptr cloud_in, PointCloudM::Ptr cloud_out);
 
 int
 main(int argc, char** argv)
@@ -20,34 +26,48 @@ main(int argc, char** argv)
 	pcl::PCLPointCloud2::Ptr cloud_filtered (new pcl::PCLPointCloud2 ());*/
 
 	PointCloudM::Ptr cloud(new PointCloudM);
+	PointCloudM::Ptr cloud_passthrough(new PointCloudM);
+	PointCloudM::Ptr cloud_denoised(new PointCloudM);
 	PointCloudM::Ptr cloud_filtered(new PointCloudM);
 
 	PointCloudM::Ptr cloud02(new PointCloudM);
+	PointCloudM::Ptr cloud02_passthrough(new PointCloudM);
+	PointCloudM::Ptr cloud02_denoised(new PointCloudM);
 	PointCloudM::Ptr cloud02_filtered(new PointCloudM);
 
 	PointCloudM::Ptr cloud_subtracted(new PointCloudM);
 
 
-	// Fill in the cloud data
+	// Read files
 	pcl::PCDReader reader;
 
-	// Replace the path below with the path where you saved your file
-	reader.read("drawer_01.pcd", *cloud); // Remember to download the file first!
+	// Read the first cloud data
+	reader.read("drawer_01.pcd", *cloud);
 
 	std::cerr << "PointCloud before filtering: " << cloud->width * cloud->height
-		<< " data points (" << pcl::getFieldsList(*cloud) << ").";
+		<< " data points (" << pcl::getFieldsList(*cloud) << ")." << endl;
 
-	reader.read("drawer_03.pcd", *cloud02); // Remember to download the file first!
+	// Read the second cloud data
+	reader.read("drawer_03.pcd", *cloud02);
 
 	std::cerr << "PointCloud before filtering: " << cloud02->width * cloud02->height
-		<< " data points (" << pcl::getFieldsList(*cloud02) << ").";
+		<< " data points (" << pcl::getFieldsList(*cloud02) << ")." << endl;
 
-	// Pass through filter, to filter the background..?
+	// Filter
+	// Pass-through filter
+	passthrough(cloud, cloud_passthrough);
+	passthrough(cloud02, cloud02_passthrough);
+
+	// Statistical Outlier Filter
+	denoise(cloud, cloud_denoised);
+	denoise(cloud02, cloud02_denoised);
+	std::cout << "Statistical outlier filter done." << std::endl;
+
 
 	// Create Voxel Grid
 	pcl::VoxelGrid<pcl::PointXYZ> sor;
 
-	sor.setInputCloud(cloud);
+	sor.setInputCloud(cloud_passthrough);
 	sor.setLeafSize(0.05f, 0.05f, 0.05f);
 	sor.filter(*cloud_filtered);
 	std::cerr << "PointCloud after filtering: " << cloud_filtered->width * cloud_filtered->height
@@ -55,7 +75,7 @@ main(int argc, char** argv)
 
 	pcl::VoxelGrid<pcl::PointXYZ> sor02;
 
-	sor02.setInputCloud(cloud02);
+	sor02.setInputCloud(cloud02_passthrough);
 	sor02.setLeafSize(0.05f, 0.05f, 0.05f);
 	sor02.filter(*cloud02_filtered);
 	std::cerr << "PointCloud after filtering: " << cloud02_filtered->width * cloud02_filtered->height
@@ -93,4 +113,34 @@ main(int argc, char** argv)
   }
 
   return (0);
+}
+
+void denoise(PointCloudM::Ptr cloud_in, PointCloudM::Ptr cloud_out)
+{
+	// Input cloud, output cloud
+	pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+
+	std::cerr << "Cloud before filtering: " << std::endl;
+	std::cerr << cloud_in->width * cloud_in->height << std::endl;
+
+	// Create the filtering object
+	sor.setInputCloud(cloud_in);
+	sor.setMeanK(50);
+	sor.setStddevMulThresh(1.0);
+	sor.filter(*cloud_out);
+}
+
+void passthrough(PointCloudM::Ptr cloud_in, PointCloudM::Ptr cloud_out)
+{
+	std::cerr << "Cloud before filtering: " << std::endl;
+	std::cerr << cloud_in->width * cloud_in->height << std::endl;
+
+	pcl::PassThrough<pcl::PointXYZ> pass;
+	pass.setInputCloud(cloud_in);
+	pass.setFilterFieldName("z");
+	pass.setFilterLimits(-1.0, 2.0);
+	pass.filter(*cloud_out);
+
+	std::cerr << "Clouds after passthrough filter: " << std::endl;
+	std::cerr << cloud_out->width * cloud_out->height << std::endl;
 }
