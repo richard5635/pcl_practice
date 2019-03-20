@@ -16,8 +16,8 @@ typedef pcl::PointXYZ PointM; // Colorless Point
 typedef pcl::PointCloud<PointC> PointCloudC;
 typedef pcl::PointCloud<PointM> PointCloudM;
 
-void denoise(PointCloudM::Ptr cloud_in, PointCloudM::Ptr cloud_out);
-void passthrough(PointCloudM::Ptr cloud_in, PointCloudM::Ptr cloud_out);
+//void denoise(PointCloudM::Ptr cloud_in, PointCloudM::Ptr cloud_out);
+//void passthrough(PointCloudM::Ptr cloud_in, PointCloudM::Ptr cloud_out);
 
 int
 main(int argc, char** argv)
@@ -55,29 +55,40 @@ main(int argc, char** argv)
 
 	// Filter
 	// Pass-through filter
-	passthrough(cloud, cloud_passthrough);
-	passthrough(cloud02, cloud02_passthrough);
+	/*passthrough(cloud, cloud_passthrough);
+	passthrough(cloud02, cloud02_passthrough);*/
+	/*pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+	sor.setInputCloud(cloud);
+	sor.setMeanK(50);
+	sor.setStddevMulThresh(1.0);
+	sor.filter(*cloud_passthrough);
+
+	pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor02;
+	sor02.setInputCloud(cloud02);
+	sor02.setMeanK(50);
+	sor02.setStddevMulThresh(1.0);
+	sor02.filter(*cloud02_passthrough);*/
 
 	// Statistical Outlier Filter
-	denoise(cloud, cloud_denoised);
+	/*denoise(cloud, cloud_denoised);
 	denoise(cloud02, cloud02_denoised);
-	std::cout << "Statistical outlier filter done." << std::endl;
+	std::cout << "Statistical outlier filter done." << std::endl;*/
 
 
 	// Create Voxel Grid
-	pcl::VoxelGrid<pcl::PointXYZ> sor;
+	pcl::VoxelGrid<pcl::PointXYZ> voxg;
 
-	sor.setInputCloud(cloud_passthrough);
-	sor.setLeafSize(0.05f, 0.05f, 0.05f);
-	sor.filter(*cloud_filtered);
+	voxg.setInputCloud(cloud);
+	voxg.setLeafSize(0.05f, 0.05f, 0.05f);
+	voxg.filter(*cloud_filtered);
 	std::cerr << "PointCloud after filtering: " << cloud_filtered->width * cloud_filtered->height
 		<< " data points (" << pcl::getFieldsList(*cloud_filtered) << ").";
 
-	pcl::VoxelGrid<pcl::PointXYZ> sor02;
+	pcl::VoxelGrid<pcl::PointXYZ> voxg02;
 
-	sor02.setInputCloud(cloud02_passthrough);
-	sor02.setLeafSize(0.05f, 0.05f, 0.05f);
-	sor02.filter(*cloud02_filtered);
+	voxg02.setInputCloud(cloud02);
+	voxg02.setLeafSize(0.05f, 0.05f, 0.05f);
+	voxg02.filter(*cloud02_filtered);
 	std::cerr << "PointCloud after filtering: " << cloud02_filtered->width * cloud02_filtered->height
 		<< " data points (" << pcl::getFieldsList(*cloud02_filtered) << ").";
 
@@ -115,32 +126,32 @@ main(int argc, char** argv)
   return (0);
 }
 
-void denoise(PointCloudM::Ptr cloud_in, PointCloudM::Ptr cloud_out)
-{
-	// Input cloud, output cloud
-	pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
-
-	std::cerr << "Cloud before filtering: " << std::endl;
-	std::cerr << cloud_in->width * cloud_in->height << std::endl;
-
-	// Create the filtering object
-	sor.setInputCloud(cloud_in);
-	sor.setMeanK(50);
-	sor.setStddevMulThresh(1.0);
-	sor.filter(*cloud_out);
-}
-
-void passthrough(PointCloudM::Ptr cloud_in, PointCloudM::Ptr cloud_out)
-{
-	std::cerr << "Cloud before filtering: " << std::endl;
-	std::cerr << cloud_in->width * cloud_in->height << std::endl;
-
-	pcl::PassThrough<pcl::PointXYZ> pass;
-	pass.setInputCloud(cloud_in);
-	pass.setFilterFieldName("z");
-	pass.setFilterLimits(-1.0, 2.0);
-	pass.filter(*cloud_out);
-
-	std::cerr << "Clouds after passthrough filter: " << std::endl;
-	std::cerr << cloud_out->width * cloud_out->height << std::endl;
-}
+//void denoise(PointCloudM::Ptr cloud_in, PointCloudM::Ptr cloud_out)
+//{
+//	// Input cloud, output cloud
+//	pcl::StatisticalOutlierRemoval<pcl::PointXYZ> sor;
+//
+//	std::cerr << "Cloud before filtering: " << std::endl;
+//	std::cerr << cloud_in->width * cloud_in->height << std::endl;
+//
+//	// Create the filtering object
+//	sor.setInputCloud(cloud_in);
+//	sor.setMeanK(50);
+//	sor.setStddevMulThresh(1.0);
+//	sor.filter(*cloud_out);
+//}
+//
+//void passthrough(PointCloudM::Ptr cloud_in, PointCloudM::Ptr cloud_out)
+//{
+//	std::cerr << "Cloud before filtering: " << std::endl;
+//	std::cerr << cloud_in->width * cloud_in->height << std::endl;
+//
+//	pcl::PassThrough<pcl::PointXYZ> pass;
+//	pass.setInputCloud(cloud_in);
+//	pass.setFilterFieldName("z");
+//	pass.setFilterLimits(-1.0, 2.0);
+//	pass.filter(*cloud_out);
+//
+//	std::cerr << "Clouds after passthrough filter: " << std::endl;
+//	std::cerr << cloud_out->width * cloud_out->height << std::endl;
+//}
